@@ -8,19 +8,21 @@
       v-model="quote.rating"
       variant="primary"
       class="mb-2"
+      v-bind:disabled="isRatingDisabled"
+      @change="isSubmitDisabled = false"
     />
     <div class="buttonGroup">
       <b-button variant="outline-danger" @click="clearRating">
         Clear
       </b-button>
-      <b-button variant="primary" @click="postQuoteRating">
+      <b-button variant="primary" v-bind:disabled="isSubmitDisabled" @click="postQuoteRating">
         Submit
       </b-button>
     </div>
-    <h4 v-if="newQuote.text && quote.rating >=4">
+    <h4 v-if="newQuote.text && quote.rating >= 4">
       Since you liked the previous quote, here's another similar one: {{ newQuote.text }}
     </h4>
-    <h4 v-else-if="newQuote.text && quote.rating">
+    <h4 v-else-if="newQuote.text">
       Since you didn't like the previous quote, here's a new one: {{ newQuote.text }}
     </h4>
   </div>
@@ -37,31 +39,38 @@ export default {
       quote: {
         id: "",
         text: "",
-        rating: null
+        rating: 0
       },
       newQuote: {
         text: ""
-      }
+      },
+      isRatingDisabled: true,
+      isSubmitDisabled: true
     }
   },
   methods: {
+    resetStatus() {
+      this.isRatingDisabled = false
+      this.clearRating()
+      this.newQuote.text = ""
+      this.quote.rating = 0
+    },
     clearRating() {
-      this.quote.rating = null
+      this.quote.rating = 0
     },
     fetchRandomQuote () {
       fetch('/api/random')
         .then(response => response.json())
         .then(response => {
-          console.log('random quote', response);
           this.quote.id = response.id
           this.quote.text = response.en
+
+          this.resetStatus()
         }).catch(error => {
           this.quote.text = `Quote could not be fetched: ${error}`
         })
     },
     postQuoteRating () {
-      console.log('rating: ', this.quote.rating, this.quote.id)
-
       const request = {
         method: 'POST',
         headers: {
@@ -75,8 +84,10 @@ export default {
       fetch('/api/rate', request)
         .then(response => response.json())
         .then(response => {
-          console.log('random quote', response, response.en);
           this.newQuote.text = response.en
+
+          this.isRatingDisabled = true
+          this.isSubmitDisabled = true
         })
         .catch(error => {
           console.log('error in api/rate', error)
